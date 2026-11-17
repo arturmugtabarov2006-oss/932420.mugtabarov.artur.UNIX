@@ -32,11 +32,13 @@ SRC_BASE=$(basename "$SRC_ABS")
 
 #  Поиск Output: 
 OUTPUT_NAME=$(awk '
-    match($0, /[Oo]utput:[ \t]*[^ \t*\/%>]+/) {
-        s = substr($0, RSTART, RLENGTH)
-        sub(/^[Oo]utput:[ \t]*/, "", s)
-        print s
-        exit
+    /^[[:space:]]*[\/#%]/ {
+        if (match($0, /[Oo]utput:[[:space:]]*[A-Za-z0-9_.-]+/)) {
+            s = substr($0, RSTART, RLENGTH)
+            sub(/^[Oo]utput:[[:space:]]*/, "", s)
+            print s
+            exit
+        }
     }
 ' "$SRC_ABS")
 
@@ -67,6 +69,8 @@ case "$SRC_BASE" in
         exit $E_BADTYPE ;;
 esac
 
+cd "$TMPDIR" || exit $E_TMPDIR
+
 #  Сборка 
 case "$TYPE" in
   c)
@@ -96,9 +100,13 @@ esac
     printf 'Error: expected output not found: %s\n' "$OUTPUT_NAME" >&2
     exit $E_OUTPUT; }
 
-mv "$TMPDIR/$OUTPUT_NAME" "$SRC_DIR/$OUTPUT_NAME" || {
-    printf 'Error: cannot move output to %s\n' "$SRC_DIR/$OUTPUT_NAME" >&2
+cd "$ORIG_DIR" || exit $E_OUTPUT
+
+mv "$TMPDIR/$OUTPUT_NAME" "$ORIG_DIR/$OUTPUT_NAME" || {
+    printf 'Error: cannot move output to %s\n' "$ORIG_DIR/$OUTPUT_NAME" >&2
     exit $E_OUTPUT; }
+
+printf 'Built: %s\n' "$ORIG_DIR/$OUTPUT_NAME"
 
 printf 'Built: %s\n' "$SRC_DIR/$OUTPUT_NAME"
 exit 0
